@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>redesign v2</title>
+<script type="importmap">
+{
+  "imports": {
+    "preact": "/deps/4d2617f3f0825502.js",
+    "preact/hooks": "/deps/6cb79fe9959ad185.js",
+    "htm": "/deps/ab33dd3f38059b9b.js",
+    "@preact/signals-core": "/deps/bfbb64b74f7f06a4.js"
+  }
+}
+</script>
+</head>
+<body>
+<h1>redesign / v2</h1>
+<pre id="out">loading...</pre>
+<script type="module">
+import * as m0 from "preact";
+import * as m1 from "preact/hooks";
+import * as m2 from "htm";
+import * as m3 from "@preact/signals-core";
+const names = ["preact", "preact/hooks", "htm", "@preact/signals-core"];
+const mods = [m0, m1, m2, m3];
+document.getElementById("out").textContent =
+  names.map((n, i) => n + ": " + Object.keys(mods[i]).length + " exports").join("\n");
+</script>
+</body>
+</html>
