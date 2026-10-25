@@ -69,33 +69,103 @@ def extract_one(tgz: bytes, rel_path: str) -> bytes:
         return tar.extractfile(member).read()
 
 
-def write_page(mode: str, label: str, imports: dict[str, str]) -> None:
-    importmap = json.dumps({"imports": imports}, indent=2)
-    lines = [f"import * as m{i} from {json.dumps(s)};" for i, s in enumerate(imports)]
-    names = ", ".join(json.dumps(s) for s in imports)
-    mods = ", ".join(f"m{i}" for i in range(len(imports)))
-    html = f"""<!doctype html>
+PAGE = """<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>{mode} {label}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>%%MODE%% %%LABEL%%</title>
 <script type="importmap">
-{importmap}
+%%IMPORTMAP%%
 </script>
+<style>
+  body { font: 15px/1.4 system-ui, sans-serif; margin: 1.5rem; }
+  table { border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid #999; padding: .25rem .6rem; text-align: right; }
+  th:first-child, td:first-child { text-align: left; font-family: ui-monospace, monospace; }
+</style>
 </head>
 <body>
-<h1>{mode} / {label}</h1>
-<pre id="out">loading...</pre>
+<h1>%%MODE%% / %%LABEL%%</h1>
+<nav>baseline: <a href="/baseline-v1/">v1</a> <a href="/baseline-v2/">v2</a>
+  | redesign: <a href="/redesign-v1/">v1</a> <a href="/redesign-v2/">v2</a></nav>
+<div id="app"></div>
+<p id="sig"></p>
+<table id="rt"><thead><tr>
+  <th>dependency URL</th><th>transferSize</th><th>encodedBodySize</th>
+  <th>decodedBodySize</th><th>source</th><th>duration (ms)</th>
+</tr></thead><tbody></tbody></table>
+<p id="meta"></p>
 <script type="module">
-{chr(10).join(lines)}
-const names = [{names}];
-const mods = [{mods}];
-document.getElementById("out").textContent =
-  names.map((n, i) => n + ": " + Object.keys(mods[i]).length + " exports").join("\\n");
+import { h, render } from "preact";
+import { useState } from "preact/hooks";
+import htm from "htm";
+%%SIGNAL_IMPORT%%
+const html = htm.bind(h);
+
+function Counter() {
+  const [n, setN] = useState(0);
+  const click = () => { setN(n + 1); %%SIGNAL_CLICK%% };
+  return html`<button onClick=${click}>clicked ${n} times</button>`;
+}
+render(html`<${Counter} />`, document.getElementById("app"));
+%%SIGNAL_EFFECT%%
+
+function cell(row, text) {
+  const td = document.createElement("td");
+  td.textContent = String(text);
+  row.appendChild(td);
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#rt tbody");
+  const entries = performance.getEntriesByType("resource")
+    .filter(e => new URL(e.name).pathname.startsWith("/deps"));
+  let sumTransfer = 0, sumEncoded = 0;
+  for (const e of entries) {
+    const u = new URL(e.name);
+    const source = e.transferSize === 0 ? "cache"
+                 : e.encodedBodySize === 0 ? "revalidated (304)"
+                 : "network";
+    sumTransfer += e.transferSize;
+    sumEncoded += e.encodedBodySize;
+    const row = tbody.insertRow();
+    cell(row, u.pathname + u.search);
+    cell(row, e.transferSize);
+    cell(row, e.encodedBodySize);
+    cell(row, e.decodedBodySize);
+    cell(row, source);
+    cell(row, e.duration.toFixed(1));
+  }
+  const total = tbody.insertRow();
+  cell(total, "TOTAL (" + entries.length + " files)");
+  cell(total, sumTransfer);
+  cell(total, sumEncoded);
+  cell(total, ""); cell(total, ""); cell(total, "");
+  document.getElementById("meta").textContent =
+    "Loaded " + new Date().toISOString() + " | " + navigator.userAgent;
+}
+addEventListener("load", renderTable);
 </script>
 </body>
 </html>
 """
+
+SIGNAL_IMPORT = 'import { signal, effect } from "@preact/signals-core";\nconst total = signal(0);'
+SIGNAL_CLICK = "total.value++;"
+SIGNAL_EFFECT = ('effect(() => { document.getElementById("sig").textContent = '
+                 '"signal total: " + total.value; });')
+
+
+def write_page(mode: str, label: str, imports: dict[str, str]) -> None:
+    has_signals = "@preact/signals-core" in imports
+    html = (PAGE
+            .replace("%%MODE%%", mode)
+            .replace("%%LABEL%%", label)
+            .replace("%%IMPORTMAP%%", json.dumps({"imports": imports}, indent=2))
+            .replace("%%SIGNAL_IMPORT%%", SIGNAL_IMPORT if has_signals else "")
+            .replace("%%SIGNAL_CLICK%%", SIGNAL_CLICK if has_signals else "")
+            .replace("%%SIGNAL_EFFECT%%", SIGNAL_EFFECT if has_signals else ""))
     out = SITE / f"{mode}-{label}"
     out.mkdir(parents=True, exist_ok=True)
     (out / "index.html").write_text(html, encoding="utf-8")

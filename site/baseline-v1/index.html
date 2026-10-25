@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>baseline v1</title>
 <script type="importmap">
 {
@@ -12,18 +13,74 @@
   }
 }
 </script>
+<style>
+  body { font: 15px/1.4 system-ui, sans-serif; margin: 1.5rem; }
+  table { border-collapse: collapse; margin-top: 1rem; }
+  th, td { border: 1px solid #999; padding: .25rem .6rem; text-align: right; }
+  th:first-child, td:first-child { text-align: left; font-family: ui-monospace, monospace; }
+</style>
 </head>
 <body>
 <h1>baseline / v1</h1>
-<pre id="out">loading...</pre>
+<nav>baseline: <a href="/baseline-v1/">v1</a> <a href="/baseline-v2/">v2</a>
+  | redesign: <a href="/redesign-v1/">v1</a> <a href="/redesign-v2/">v2</a></nav>
+<div id="app"></div>
+<p id="sig"></p>
+<table id="rt"><thead><tr>
+  <th>dependency URL</th><th>transferSize</th><th>encodedBodySize</th>
+  <th>decodedBodySize</th><th>source</th><th>duration (ms)</th>
+</tr></thead><tbody></tbody></table>
+<p id="meta"></p>
 <script type="module">
-import * as m0 from "preact";
-import * as m1 from "preact/hooks";
-import * as m2 from "htm";
-const names = ["preact", "preact/hooks", "htm"];
-const mods = [m0, m1, m2];
-document.getElementById("out").textContent =
-  names.map((n, i) => n + ": " + Object.keys(mods[i]).length + " exports").join("\n");
+import { h, render } from "preact";
+import { useState } from "preact/hooks";
+import htm from "htm";
+
+const html = htm.bind(h);
+
+function Counter() {
+  const [n, setN] = useState(0);
+  const click = () => { setN(n + 1);  };
+  return html`<button onClick=${click}>clicked ${n} times</button>`;
+}
+render(html`<${Counter} />`, document.getElementById("app"));
+
+
+function cell(row, text) {
+  const td = document.createElement("td");
+  td.textContent = String(text);
+  row.appendChild(td);
+}
+
+function renderTable() {
+  const tbody = document.querySelector("#rt tbody");
+  const entries = performance.getEntriesByType("resource")
+    .filter(e => new URL(e.name).pathname.startsWith("/deps"));
+  let sumTransfer = 0, sumEncoded = 0;
+  for (const e of entries) {
+    const u = new URL(e.name);
+    const source = e.transferSize === 0 ? "cache"
+                 : e.encodedBodySize === 0 ? "revalidated (304)"
+                 : "network";
+    sumTransfer += e.transferSize;
+    sumEncoded += e.encodedBodySize;
+    const row = tbody.insertRow();
+    cell(row, u.pathname + u.search);
+    cell(row, e.transferSize);
+    cell(row, e.encodedBodySize);
+    cell(row, e.decodedBodySize);
+    cell(row, source);
+    cell(row, e.duration.toFixed(1));
+  }
+  const total = tbody.insertRow();
+  cell(total, "TOTAL (" + entries.length + " files)");
+  cell(total, sumTransfer);
+  cell(total, sumEncoded);
+  cell(total, ""); cell(total, ""); cell(total, "");
+  document.getElementById("meta").textContent =
+    "Loaded " + new Date().toISOString() + " | " + navigator.userAgent;
+}
+addEventListener("load", renderTable);
 </script>
 </body>
 </html>
