@@ -171,6 +171,30 @@ def write_page(mode: str, label: str, imports: dict[str, str]) -> None:
     (out / "index.html").write_text(html, encoding="utf-8")
 
 
+LANDING = """<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dependency URL caching demo</title>
+<style>body { font: 16px/1.5 system-ui, sans-serif; margin: 1.5rem; max-width: 46rem; }</style>
+</head>
+<body>
+<h1>Global <code>?v=</code> vs content-addressed dependency URLs</h1>
+<p>The same tiny app (preact + htm) in two lock versions: v2 adds one package
+(@preact/signals-core). Each page lists its dependency requests from the
+Resource Timing API; <code>transferSize</code> 0 means the file came from the browser cache.</p>
+<ol>
+  <li>Open DevTools, Network tab, leave "Disable cache" OFF.</li>
+  <li>Baseline: <a href="/baseline-v1/">v1</a>, then <a href="/baseline-v2/">v2</a>.</li>
+  <li>Redesign: <a href="/redesign-v1/">v1</a>, then <a href="/redesign-v2/">v2</a>.</li>
+</ol>
+<p>Static demo for a course assignment; not Lovable's system. Source code is in the linked repository.</p>
+</body>
+</html>
+"""
+
+
 def build(lock_path: Path, cache: dict) -> None:
     label = lock_path.stem.split(".")[-1]          # lock.v1.json -> "v1"
     lock = json.loads(lock_path.read_text(encoding="utf-8"))
@@ -212,6 +236,7 @@ def main() -> None:
     cache: dict = {}
     for arg in sys.argv[1:]:
         build(Path(arg), cache)
+    (SITE / "index.html").write_text(LANDING, encoding="utf-8")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,36 @@
+# Content-addressed dependencies: the URL changes whenever the bytes change,
+# so the browser may keep them for a year without ever revalidating.
+/deps/*
+  Cache-Control: public, max-age=31536000, immutable
+  Timing-Allow-Origin: *
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+# Baseline: identical caching policy; only the ?v= naming scheme differs.
+/deps-global/*
+  Cache-Control: public, max-age=31536000, immutable
+  Timing-Allow-Origin: *
+  Access-Control-Allow-Origin: *
+  X-Content-Type-Options: nosniff
+
+# HTML entry points hold the URLs, so they must never be reused from cache.
+/
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+/baseline-v1/*
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+/baseline-v2/*
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+/redesign-v1/*
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer
+/redesign-v2/*
+  Cache-Control: no-store
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: no-referrer

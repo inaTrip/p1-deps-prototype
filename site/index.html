@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dependency URL caching demo</title>
+<style>body { font: 16px/1.5 system-ui, sans-serif; margin: 1.5rem; max-width: 46rem; }</style>
+</head>
+<body>
+<h1>Global <code>?v=</code> vs content-addressed dependency URLs</h1>
+<p>The same tiny app (preact + htm) in two lock versions: v2 adds one package
+(@preact/signals-core). Each page lists its dependency requests from the
+Resource Timing API; <code>transferSize</code> 0 means the file came from the browser cache.</p>
+<ol>
+  <li>Open DevTools, Network tab, leave "Disable cache" OFF.</li>
+  <li>Baseline: <a href="/baseline-v1/">v1</a>, then <a href="/baseline-v2/">v2</a>.</li>
+  <li>Redesign: <a href="/redesign-v1/">v1</a>, then <a href="/redesign-v2/">v2</a>.</li>
+</ol>
+<p>Static demo for a course assignment; not Lovable's system. Source code is in the linked repository.</p>
+</body>
+</html>
