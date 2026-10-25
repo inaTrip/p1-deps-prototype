@@ -1,0 +1,12 @@
+{
+  "lockfileVersion": 1,
+  "packages": {
+    "preact": { "version": "11.0.2", "integrity": "sha512-ofG+Lqznbt13JKDjdWPLTo5ONBqcNgidqnLRzJBG6PZjzGXOLRd5y9r448+HUofTyDbgKWVrPhHP0IgcxEZslQ==" },
+    "htm":    { "version": "3.1.1",  "integrity": "sha512-983Vyg8NwUE7JkZ6NmOqpCZ+sh1bKv2iYTlUkzlWmA5JD2acKoxd4KVxbMmxX/85mtfdnDmTFoNKcg5DGAvxNQ==" }
+  },
+  "imports": {
+    "preact":       { "package": "preact", "file": "dist/preact.mjs" },
+    "preact/hooks": { "package": "preact", "file": "hooks/dist/hooks.mjs" },
+    "htm":          { "package": "htm",    "file": "dist/htm.module.js" }
+  }
+}
