@@ -1,0 +1,73 @@
+P1 side quest "Prototype it" - evidence log
+============================================
+
+CONTEXT
+- Date: Sunday 25 October 2026
+- Run times (on-page timestamps, UTC; local Europe/Madrid = UTC+1):
+    baseline-v1  2026-10-25T17:04:10.632Z  (18:04:10 local)
+    baseline-v2  2026-10-25T17:07:19.535Z  (18:07:19 local)
+    redesign-v1  2026-10-25T17:10:09.158Z  (18:10:09 local)
+    redesign-v2  2026-10-25T17:10:25.543Z  (18:10:25 local)
+- Browser: Google Chrome 155.0.8059.85 (from chrome://version)
+  (the page shows the reduced user-agent "Chrome/155.0.0.0", not the full version)
+- OS: macOS 27.0.1
+  (the user-agent string "Mac OS X 10_15_7" is frozen by Chrome and is not the real version)
+- Network: Ethernet
+- Site: https://magical-platypus-bfc42e.netlify.app/  (Netlify, visibility set to Public)
+- Repo: https://github.com/inaTrip/p1-deps-prototype  (deployed commit 3df8c18)
+- Method: fresh Incognito window per mode; DevTools Network open before loading;
+  "Disable cache" OFF; "Keep log" ON; No throttling; filter "deps";
+  v1 loaded by typing the URL, v2 reached by clicking the in-page link (no reload).
+- Runs: one run per mode.
+
+RESULTS (transferSize in bytes, from the on-page Resource Timing table)
+
+Baseline (global ?v=)            v1 (?v=75bea3fd)   v2 (?v=e5372006)
+  preact                              5165               5184
+  preact/hooks                        1876               1876
+  htm                                  910                910
+  @preact/signals-core                  -                2233
+  TOTAL                               7951              10203
+  source column                  all network        all network
+
+Redesign (content-addressed)     v1                 v2
+  preact       /deps/4d2617f3f0825502.js   5184        0 (cache)
+  preact/hooks /deps/6cb79fe9959ad185.js   1894        0 (cache)
+  htm          /deps/ab33dd3f38059b9b.js    910        0 (cache)
+  signals-core /deps/bfbb64b74f7f06a4.js     -      2233 (network)
+  TOTAL                                    7988      2233
+
+DevTools Size column, redesign-v2: "(memory cache)" for the three shared files,
+2.0 kB for bfbb64b74f7f06a4.js.
+DevTools filtered summary bar ("deps"), cumulative over v1+v2 because Keep log was on:
+  baseline: 7 / 14 requests, 16.9 kB / 83.2 kB transferred
+  redesign: 7 / 14 requests,  9.5 kB / 75.3 kB transferred
+
+DERIVED (computed from the numbers above)
+- v1 -> v2, dependency bytes over the network:
+    baseline 10203 B, redesign 2233 B  ->  redesign transfers 78.1 % fewer bytes
+- Bytes the baseline re-downloaded for the 3 unchanged files: 10203 - 2233 = 7970 B
+  (redesign: 0 B, all three served from the browser cache)
+
+OBSERVATIONS / CAVEATS
+- One run per mode; tiny sample (4 files, ~10 kB). Not comparable in scale to the
+  Lovable HAR (124 dependency requests, 14,287 kB).
+- transferSize includes response headers; Netlify compresses JS, so
+  encodedBodySize < decodedBodySize.
+- In every network row, transferSize - encodedBodySize = 300 B exactly. Chrome adds a
+  fixed 300 B header estimate to transferSize instead of the real header size.
+  This is why the DevTools "transferred" figures are lower than the summed
+  transferSize values (DevTools shows the actual, HPACK-compressed header bytes).
+  Body bytes over the network (sum of encodedBodySize, network rows only):
+    baseline v2: 610 + 4884 + 1576 + 1933 = 9003 B; redesign v2: 1933 B
+    -> 78.5 % fewer body bytes (headers excluded).
+- The encodedBodySize TOTAL on redesign-v2 (9021) also counts cached files;
+  use transferSize for "bytes over the network".
+- preact's transferSize/encodedBodySize differ by 19 B between baseline-v1 (5165/4865)
+  and the other loads (5184/4884); decodedBodySize is identical (12093).
+  Likely a different compressed variant from Netlify's edge; cause not verified.
+- Netlify injected a "Powered by Netlify" badge and a script (hud?variant=public)
+  into the HTML. It is not under /deps, so it is excluded from the table, but it
+  means the served HTML is not byte-identical to the repo.
+- "(memory cache)" vs "(disk cache)": Resource Timing reports 0 for both; the claim
+  is "no network transfer", not "disk cache".
